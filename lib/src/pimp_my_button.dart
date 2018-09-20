@@ -36,6 +36,7 @@ class PimpedButtonState extends State<PimpedButton> with SingleTickerProviderSta
     random = Random();
     seed = random.nextInt(100000000);
     controller = AnimationController(vsync: this, duration: widget.duration);
+    controller.value = 1.0;
     controller.addStatusListener((status) {
       if (status == AnimationStatus.forward || status == AnimationStatus.reverse) {
         seed = random.nextInt(10000000);
@@ -68,60 +69,58 @@ class PimpedButtonState extends State<PimpedButton> with SingleTickerProviderSta
 }
 
 class PimpPainter extends CustomPainter {
-  PimpPainter({this.particle, this.seed, this.controller, this.shouldPaint}) : super(repaint: controller);
+  PimpPainter({this.particle, this.seed, this.controller, this.shouldPaint})
+      : lastDrawnValue = controller.value,
+        super(repaint: controller);
 
   final Particle particle;
   final int seed;
   final AnimationController controller;
   final bool shouldPaint;
+  final double lastDrawnValue;
 
   @override
   void paint(Canvas canvas, Size size) {
-    if(shouldPaint) {
-      canvas.translate(size.width / 2, size.height / 2);
-      particle.paint(canvas, size, controller.value, seed);
-    }
+    canvas.translate(size.width / 2, size.height / 2);
+    particle.paint(canvas, size, lastDrawnValue, seed);
   }
 
   @override
-  bool shouldRepaint(PimpPainter oldDelegate) => shouldPaint;
+  bool shouldRepaint(PimpPainter oldDelegate) => oldDelegate.lastDrawnValue != lastDrawnValue;
 }
 
 abstract class Particle {
   void paint(Canvas canvas, Size size, double progress, int seed);
 }
 
-
 class FourRandomSlotParticle extends Particle {
-
   final List<Particle> children;
 
   final double relativeDistanceToMiddle;
 
   FourRandomSlotParticle({this.children, this.relativeDistanceToMiddle = 2.0});
 
-
   @override
   void paint(Canvas canvas, Size size, double progress, int seed) {
     Random random = Random(seed);
     int side = 0;
-    for(Particle particle in children) {
+    for (Particle particle in children) {
       PositionedParticle(
         position: sideToOffset(side, size, random) * relativeDistanceToMiddle,
         child: particle,
       ).paint(canvas, size, progress, seed);
-      side ++;
+      side++;
     }
   }
 
   Offset sideToOffset(int side, Size size, Random random) {
-    if(side == 0) {
+    if (side == 0) {
       return Offset(-random.nextDouble() * (size.width / 2), -random.nextDouble() * (size.height / 2));
-    } else if(side == 1) {
+    } else if (side == 1) {
       return Offset(random.nextDouble() * (size.width / 2), -random.nextDouble() * (size.height / 2));
-    } else if(side == 2) {
+    } else if (side == 2) {
       return Offset(random.nextDouble() * (size.width / 2), random.nextDouble() * (size.height / 2));
-    } else if(side == 3) {
+    } else if (side == 3) {
       return Offset(-random.nextDouble() * (size.width / 2), random.nextDouble() * (size.height / 2));
     } else {
       throw Exception();
@@ -154,20 +153,18 @@ class PoppingCircle extends Particle {
       CircleMirror(
         numberOfParticles: 4,
         child: AnimatedPositionedParticle(
-          begin: Offset(0.0, 5.0),
-          end: Offset(0.0, 15.0),
-          child: FadingRect(
-            color: color,
-            height: 7.0,
-            width: 2.0,
-          )
-        ),
+            begin: Offset(0.0, 5.0),
+            end: Offset(0.0, 15.0),
+            child: FadingRect(
+              color: color,
+              height: 7.0,
+              width: 2.0,
+            )),
         initialRotation: pi / 4,
       ).paint(canvas, size, progress, seed);
     }
   }
 }
-
 
 class Firework extends Particle {
   @override
